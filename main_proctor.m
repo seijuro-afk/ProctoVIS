@@ -16,9 +16,9 @@ end
 gazeEngine = py.gaze_engine.GazeTracker();
 
 % 1. System Setup & Model Initialization
-videoPath = 'C:\Users\PC\Downloads\frame_skip.mp4'; % just change
+videoPath = 'C:\Users\PC\Desktop\input\subject1.mp4'; % just change
 vReader   = VideoReader(videoPath);
-vWriter   = VideoWriter('proctor_output_explained_cheaterJames(frame_skip_2).mp4', 'MPEG-4');
+vWriter   = VideoWriter('C:\Users\PC\Desktop\ProctoVIS-James_PC\output\proctor_output_subject1.mp4', 'MPEG-4');
 open(vWriter);
 
 % Frame metadata
@@ -40,8 +40,8 @@ landmarkParams = importONNXFunction('models/face_landmarks.onnx', 'landmarkFcn')
 landmarkNet = @(img, varargin) landmarkFcn(img, landmarkParams, varargin{:});
 
 % landmarkNet = dlnetwork(landmarkNet);   % Convert to dlnetwork explicitly
-yoloDetector = yolov4ObjectDetector('csp-darknet53-coco'); % Requires COCO pretrained package
-
+% yoloDetector = yolov4ObjectDetector('csp-darknet53-coco'); % Requires COCO pretrained package
+yoloDetector = yolov8ObjectDetector('yolov8m');
 % Camera Intrinsics Approximation (Assuming standard webcam FOV ~60 deg)
 focalLength = [frameWidth, frameWidth]; 
 principalPoint = [frameWidth/2, frameHeight/2];
@@ -236,16 +236,23 @@ while hasFrame(vReader)
             procFrame, grayFrame, landmarksProc, faceDetector, yoloDetector, yaw, pitch, roll, gazeDir, prevIntensity, currentTime, runFullAnalysis, ...
             initialYaw, initialPitch, initialRoll);
 
-        if twoFaceVisible
-            frameFlags(end+1) = struct('Time', currentTime, 'Type', 'Multiple Faces Visible', 'Severity', 'Medium');
+        % --- INTEGRATION: Unified Multi-Person Detection ---
+        % Check if the YOLO model (inside detectAnomalies) already flagged multiple bodies
+        yoloDetectedMultiple = any(strcmp({frameFlags.Type}, 'Multiple People Detected'));
+
+        % If the Haar Cascade detects multiple faces but YOLO missed the bodies 
+        % (e.g., bodies are occluded), we add the unified flag as a fallback.
+        if twoFaceVisible && ~yoloDetectedMultiple
+            frameFlags(end+1) = struct('Time', currentTime, 'Type', 'Multiple People Detected', 'Severity', 'High');
         end
+        % (If YOLO already flagged it, we do nothing to prevent duplicate HUD/timeline entries)
 
         if phoneLightDetected
             frameFlags(end+1) = struct('Time', currentTime, 'Type', 'Possible Phone Light', 'Severity', 'Medium');
         end
 
         [faceIdentityMatch, faceIdentityScore, faceIdentityPresent] = verifyFaceAgainstReference(...
-            procFrame, grayFrame, faceDetector, referenceData);
+            procFrame, grayRaw, faceDetector, referenceData);
 
         if reliableFaceCount > 0 && faceIdentityPresent
             if ~faceIdentityMatch
@@ -254,7 +261,8 @@ while hasFrame(vReader)
                 faceIdentityMismatchStreak = max(0, faceIdentityMismatchStreak - 1);
             end
 
-            if faceIdentityMismatchStreak >= faceIdentityMismatchStreakThreshold && ~faceIdentityMismatchActive
+            % REMOVED the '&& ~faceIdentityMismatchActive' suppression
+            if faceIdentityMismatchStreak >= faceIdentityMismatchStreakThreshold 
                 frameFlags(end+1) = struct('Time', currentTime, 'Type', 'Face Identity Mismatch', 'Severity', 'High');
                 faceIdentityMismatchActive = true;
             elseif faceIdentityMatch && faceIdentityMismatchStreak < faceIdentityMismatchStreakThreshold
@@ -369,12 +377,7 @@ gazeDeviating = (gazeTarget(1) < screenLeft) || (gazeTarget(1) > screenRight) ||
     if ~isempty(landmarksFull)
         hudFrame = insertMarker(hudFrame, landmarksFull, '*', 'Color', 'yellow', 'Size', 3);
 
-        % Draw 3D Pose Projection Arrows (Red=X/Pitch, Green=Y/Yaw, Blue=Z/Roll)
-        if ~isempty(poseAxes)
-            hudFrame = insertShape(hudFrame, 'Line', poseAxes, 'Color', {'red', 'green', 'blue'}, 'LineWidth', 3);
-        end
-
-        % Draw Gaze Direction Line
+        % Keep only the cyan gaze direction line and suppress the pose-axis overlays.
         noseTip = landmarksFull(31, :);
         hudFrame = insertShape(hudFrame, 'Line', [noseTip, gazeTarget], 'Color', 'cyan', 'LineWidth', 3);
         % Draw the Screen "Safe Zone" Box on the HUD

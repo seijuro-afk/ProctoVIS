@@ -67,10 +67,6 @@ function [flags, objBboxes, objLabels, currentIntensity] = detectAnomalies(...
         flags(end+1) = struct('Time', timeSec, 'Type', 'Student Occluded / Missing', 'Severity', 'High');
     end
 
-    if reliablePersonCount >= 2
-        flags(end+1) = struct('Time', timeSec, 'Type', 'Two Faces Visible', 'Severity', 'Medium');
-    end
-
     if phoneCount > 0
         flags(end+1) = struct('Time', timeSec, 'Type', 'Secondary Device Detected', 'Severity', 'Critical');
     end
