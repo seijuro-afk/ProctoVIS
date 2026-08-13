@@ -16,9 +16,9 @@ end
 gazeEngine = py.gaze_engine.GazeTracker();
 
 % 1. System Setup & Model Initialization
-videoPath = 'C:\Users\PC\Desktop\input\subject1.mp4'; % just change
+videoPath = 'data\alttabbing.mp4'; % just change
 vReader   = VideoReader(videoPath);
-vWriter   = VideoWriter('C:\Users\PC\Desktop\ProctoVIS-James_PC\output\proctor_output_subject1.mp4', 'MPEG-4');
+vWriter   = VideoWriter('proctor_output_subject1.mp4', 'MPEG-4');
 open(vWriter);
 
 % Frame metadata
@@ -87,6 +87,9 @@ gazeDeviationAlarmActive = false;
 headPoseDeviationStartTime = NaN;
 headPoseDeviationThresholdSec = 3;
 headPoseDeviationAlarmActive = false;
+
+% Sudden face-lighting change detector (possible alt-tab cue)
+faceLightState = initFaceLightState();
 
 fprintf('Processing video stream...\n');
 
@@ -235,6 +238,22 @@ while hasFrame(vReader)
         [frameFlags, objectBboxes, objectLabels, currentIntensity] = detectAnomalies(...
             procFrame, grayFrame, landmarksProc, faceDetector, yoloDetector, yaw, pitch, roll, gazeDir, prevIntensity, currentTime, runFullAnalysis, ...
             initialYaw, initialPitch, initialRoll);
+        
+        % --- Module: Sudden Face-Lighting Change (possible alt-tab) ---
+        primaryFaceBox = [];
+        if reliableFaceCount > 0 && ~isempty(faceBboxes)
+            faceAreas = faceBboxes(:, 3) .* faceBboxes(:, 4);
+            [~, primaryFaceIdx] = max(faceAreas);
+            primaryFaceBox = faceBboxes(primaryFaceIdx, :);
+        end
+        [faceLightFlag, faceLightState] = detectFaceLightChange( ...
+            grayRaw, primaryFaceBox, currentTime, faceLightState);
+
+        if faceLightFlag
+            frameFlags(end+1) = struct('Time', currentTime, ...
+                'Type', 'Sudden Face Lighting Change (Possible Alt-Tab)', ...
+                'Severity', 'Medium');
+        end
 
         % --- INTEGRATION: Unified Multi-Person Detection ---
         % Check if the YOLO model (inside detectAnomalies) already flagged multiple bodies
