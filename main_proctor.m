@@ -16,9 +16,9 @@ end
 gazeEngine = py.gaze_engine.GazeTracker();
 
 % 1. System Setup & Model Initialization
-videoPath = 'data/Screen.mp4';
+videoPath = 'C:\Users\PC\Downloads\frame_skip.mp4'; % just change
 vReader   = VideoReader(videoPath);
-vWriter   = VideoWriter('screenborder.mp4', 'MPEG-4');
+vWriter   = VideoWriter('proctor_output_explained_cheaterJames(frame_skip_2).mp4', 'MPEG-4');
 open(vWriter);
 
 % Frame metadata
@@ -62,6 +62,8 @@ prevGazeTarget = [frameWidth/2, frameHeight/2];
 prevObjectBboxes = [];
 prevObjectLabels = {};
 prevFrameFlags = struct('Time', {}, 'Type', {}, 'Severity', {});
+skipState = struct('isFrozen', false, 'freezeStartTime', NaN); 
+prevGrayRawForSkip = [];
 initialYaw = 0;
 initialPitch = 0;
 initialRoll = 0;
@@ -332,6 +334,16 @@ gazeDeviating = (gazeTarget(1) < screenLeft) || (gazeTarget(1) > screenRight) ||
         headPoseDeviationStartTime = NaN;
         headPoseDeviationAlarmActive = false;
     end
+    
+    % --- Module 5: Video Skip / Freeze Detection ---
+    % We pass the raw grayscale frame for accurate pixel differencing
+    [skipFlags, skipState] = detectVideoSkip(grayRaw, prevGrayRawForSkip, currentTime, skipState);
+    prevGrayRawForSkip = grayRaw;
+
+    % Append any skip flags to the current frame's flags so it appears on the HUD
+    if ~isempty(skipFlags)
+        frameFlags = [frameFlags, skipFlags];
+    end
 
     prevIntensity = currentIntensity;
     if ~isempty(frameFlags)
@@ -343,7 +355,8 @@ gazeDeviating = (gazeTarget(1) < screenLeft) || (gazeTarget(1) > screenRight) ||
         gy = max(1, min(frameHeight, round(gazeTarget(2))));
         gazeHeatmap(gy, gx) = gazeHeatmap(gy, gx) + 1;
     end
-    %% --- Module 5: Explainability Overlay (HUD) ---
+
+    %% --- Module 6S: Explainability Overlay (HUD) ---
     hudFrame = frame;
 
     % 1. Draw Object Bounding Boxes (YOLO)
