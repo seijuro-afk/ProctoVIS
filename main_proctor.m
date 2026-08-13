@@ -2,10 +2,23 @@
 clear; clc; close all;
 addpath('modules');
 
+% --- INITIALIZE PYTHON ENGINE ---
+
+% Uncomment if needed
+% pathToPython = 'D:\Anaconda\envs\proctor_env\python.exe'; 
+% pyenv('Version', pathToPython, 'ExecutionMode', 'OutOfProcess');
+
+if count(py.sys.path, pwd) == 0
+    insert(py.sys.path, int32(0), pwd); % Add current directory to Python search path
+end
+
+% Load the PyTorch Gaze Engine
+gazeEngine = py.gaze_engine.GazeTracker();
+
 % 1. System Setup & Model Initialization
-videoPath = 'data/Light_Cheating.mp4';
+videoPath = 'C:\Users\PC\Downloads\frame_skip.mp4'; % just change
 vReader   = VideoReader(videoPath);
-vWriter   = VideoWriter('proctor_output_explained_cheater1.mp4', 'MPEG-4');
+vWriter   = VideoWriter('proctor_output_explained_cheaterJames(frame_skip_2).mp4', 'MPEG-4');
 open(vWriter);
 
 % Frame metadata
@@ -49,10 +62,16 @@ prevGazeTarget = [frameWidth/2, frameHeight/2];
 prevObjectBboxes = [];
 prevObjectLabels = {};
 prevFrameFlags = struct('Time', {}, 'Type', {}, 'Severity', {});
+skipState = struct('isFrozen', false, 'freezeStartTime', NaN); 
+prevGrayRawForSkip = [];
 initialYaw = 0;
 initialPitch = 0;
 initialRoll = 0;
 initialGazeDir = 'CENTER / FORWARD';
+screenLeft = 300; 
+screenRight = 900; 
+screenTop = 350; 
+screenBottom = 650;
 initialGazeTarget = [frameWidth/2, frameHeight/2];
 twoFaceStreak = 0;
 twoFaceActive = false;
@@ -161,18 +180,55 @@ while hasFrame(vReader)
             end
 
             % --- Module 3: Gaze & Iris Tracking ---
-            [gazeDir, gazeTarget] = estimateGaze(grayFrame, landmarksFull, frameWidth, frameHeight);
+            % 1. Get the bounding box of the face to crop it
+            faceBoxes = step(faceDetector, procFrame);
+            
+            if ~isempty(faceBoxes)
+                % 1. Crop the face
+                [~, idx] = max(faceBoxes(:, 3) .* faceBoxes(:, 4));
+                faceBox = round(faceBoxes(idx, :));
+                
+                faceBox(1) = max(1, faceBox(1));
+                faceBox(2) = max(1, faceBox(2));
+                faceBox(3) = min(frameWidth - faceBox(1), faceBox(3));
+                faceBox(4) = min(frameHeight - faceBox(2), faceBox(4));
+                
+                faceCrop = imcrop(procFrame, faceBox);
+                
+                % 2. Save the crop as a temporary file for Python to read perfectly
+                tempImgPath = fullfile(pwd, 'temp_face.jpg');
+                imwrite(faceCrop, tempImgPath);
+                
+                % 3. Get absolute Radians from Python
+                gazeAngles = gazeEngine.estimate_from_crop(tempImgPath);
+                
+                % Assign Pitch to 1 and Yaw to 2 to un-swap the axes
+                eyePitch = double(gazeAngles{1});
+                eyeYaw   = double(gazeAngles{2});
+                
+                % 4. Project the true absolute eye-gaze 
+                eyeMidpoint = landmarksFull(28, :); 
+                projectionDistance = 500; 
+                
+                % yawSensitivity boosts the horizontal movement (increase it if still too slight)
+                yawSensitivity = 1.8; 
+                
+                % Added a negative sign to dx to fix the mirror inversion
+                dx = -sin(eyeYaw) * projectionDistance * yawSensitivity; 
+                dy = -sin(eyePitch) * projectionDistance; 
+                
+                gazeTarget = [eyeMidpoint(1) + dx, eyeMidpoint(2) + dy];
+                gazeDir = 'L2CS-NET TRACKING';
+            else
+                % Fallback if face detector drops the frame
+                gazeTarget = prevGazeTarget;
+                gazeDir = prevGazeDir;
+            end
+            
             if frameIdx == 1
                 initialGazeDir = gazeDir;
                 initialGazeTarget = gazeTarget;
-                gazeDir = initialGazeDir;
-                gazeTarget = initialGazeTarget;
             end
-
-            % Accumulate attention heatmap (Gaussian spatial spread)
-            gx = max(1, min(frameWidth, round(gazeTarget(1))));
-            gy = max(1, min(frameHeight, round(gazeTarget(2))));
-            gazeHeatmap(gy, gx) = gazeHeatmap(gy, gx) + 1;
         end
 
         % --- Module 4: Anomaly & Contraband Detection ---
@@ -247,7 +303,8 @@ while hasFrame(vReader)
         currentIntensity = prevIntensity;
     end
 
-    gazeDeviating = strcmp(gazeDir, 'LOOKING LEFT') || strcmp(gazeDir, 'LOOKING RIGHT');
+    % Evaluate if the 3D gaze target coordinate falls completely outside the predefined screen box
+gazeDeviating = (gazeTarget(1) < screenLeft) || (gazeTarget(1) > screenRight) || (gazeTarget(2) < screenTop) || (gazeTarget(2) > screenBottom);
     headPoseDeviating = abs(yaw - initialYaw) > 25 || abs(pitch - initialPitch) > 25 || abs(roll - initialRoll) > 25;
 
     if gazeDeviating && frameIdx > 1
@@ -277,13 +334,29 @@ while hasFrame(vReader)
         headPoseDeviationStartTime = NaN;
         headPoseDeviationAlarmActive = false;
     end
+    
+    % --- Module 5: Video Skip / Freeze Detection ---
+    % We pass the raw grayscale frame for accurate pixel differencing
+    [skipFlags, skipState] = detectVideoSkip(grayRaw, prevGrayRawForSkip, currentTime, skipState);
+    prevGrayRawForSkip = grayRaw;
+
+    % Append any skip flags to the current frame's flags so it appears on the HUD
+    if ~isempty(skipFlags)
+        frameFlags = [frameFlags, skipFlags];
+    end
 
     prevIntensity = currentIntensity;
     if ~isempty(frameFlags)
         anomalyLog = [anomalyLog, frameFlags]; %#ok<AGROW>
     end
 
-    %% --- Module 5: Explainability Overlay (HUD) ---
+    if ~isnan(gazeTarget(1)) && ~isnan(gazeTarget(2))
+        gx = max(1, min(frameWidth, round(gazeTarget(1))));
+        gy = max(1, min(frameHeight, round(gazeTarget(2))));
+        gazeHeatmap(gy, gx) = gazeHeatmap(gy, gx) + 1;
+    end
+
+    %% --- Module 6S: Explainability Overlay (HUD) ---
     hudFrame = frame;
 
     % 1. Draw Object Bounding Boxes (YOLO)
@@ -304,6 +377,11 @@ while hasFrame(vReader)
         % Draw Gaze Direction Line
         noseTip = landmarksFull(31, :);
         hudFrame = insertShape(hudFrame, 'Line', [noseTip, gazeTarget], 'Color', 'cyan', 'LineWidth', 3);
+        % Draw the Screen "Safe Zone" Box on the HUD
+        boxWidth = screenRight - screenLeft;
+        boxHeight = screenBottom - screenTop;
+        hudFrame = insertShape(hudFrame, 'Rectangle', [screenLeft, screenTop, boxWidth, boxHeight], ...
+            'Color', 'green', 'LineWidth', 2);
     end
 
     % 3. Status Display Panel
