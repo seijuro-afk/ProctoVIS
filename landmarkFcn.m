@@ -113,190 +113,178 @@ Vars.StatefulPartitionedCall_landmark_norma_4 = Vars.StatefulPartitionedCall_lan
 NumDims.StatefulPartitionedCall_landmark_norma_4 = max(NumDims.StatefulPartitionedCall_landmark_norma_2, NumDims.ConstantFolding_StatefulPartitionedCall_);
 
 % Transpose:
-[perm, NumDims.StatefulPartitionedCall_landmark_conv_4] = prepareTransposeArgs(Vars.TransposePerm1001, NumDims.StatefulPartitionedCall_landmark_norma_4);
-if ~isempty(perm)
-    Vars.StatefulPartitionedCall_landmark_conv_4 = permute(Vars.StatefulPartitionedCall_landmark_norma_4, perm);
+[perm, NumDims.StatefulPartitionedCall_landmark_conv2_4] = prepareTransposeArgs(Vars.TransposePerm1001, NumDims.StatefulPartitionedCall_landmark_norma_4);
+if isempty(perm)
+    Vars.StatefulPartitionedCall_landmark_conv2_4 = Vars.StatefulPartitionedCall_landmark_norma_4;
+else
+    Vars.StatefulPartitionedCall_landmark_conv2_4 = permute(Vars.StatefulPartitionedCall_landmark_norma_4, perm);
 end
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_2] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_5, Vars.StatefulPartitionedCall_landmark_conv_1, Vars.ConvStride1002, Vars.ConvDilationFactor1003, Vars.ConvPadding1004, 1, NumDims.StatefulPartitionedCall_landmark_conv_4, NumDims.StatefulPartitionedCall_landmark_conv_5);
-Vars.StatefulPartitionedCall_landmark_conv_2 = dlconv(Vars.StatefulPartitionedCall_landmark_conv_4, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv2_2] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv2_5, Vars.StatefulPartitionedCall_landmark_conv2_1, Vars.ConvStride1002, Vars.ConvDilationFactor1003,Vars.ConvPadding1004, 1, NumDims.StatefulPartitionedCall_landmark_conv2_4, NumDims.StatefulPartitionedCall_landmark_conv2_5);
+Vars.StatefulPartitionedCall_landmark_conv2_2 = dlconv(Vars.StatefulPartitionedCall_landmark_conv2_4, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_7 = relu(Vars.StatefulPartitionedCall_landmark_conv_2);
-NumDims.StatefulPartitionedCall_landmark_conv_7 = NumDims.StatefulPartitionedCall_landmark_conv_2;
+Vars.StatefulPartitionedCall_landmark_conv2_7 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv2_2));
+NumDims.StatefulPartitionedCall_landmark_conv2_7 = NumDims.StatefulPartitionedCall_landmark_conv2_2;
 
 % BatchNormalization:
-[offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_3, NumDims.StatefulPartitionedCall_landmark_batc_1, NumDims.StatefulPartitionedCall_landmark_batc_2] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_5, Vars.StatefulPartitionedCall_landmark_batc_4, Vars.StatefulPartitionedCall_landmark_batc_1, Vars.StatefulPartitionedCall_landmark_batc_2, NumDims.StatefulPartitionedCall_landmark_conv_7, NumDims.StatefulPartitionedCall_landmark_batc_1, NumDims.StatefulPartitionedCall_landmark_batc_2);
+[offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batch_3, NumDims.StatefulPartitionedCall_landmark_batch_1, NumDims.StatefulPartitionedCall_landmark_batch_2] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batch_5, Vars.StatefulPartitionedCall_landmark_batch_4, Vars.StatefulPartitionedCall_landmark_batch_1, Vars.StatefulPartitionedCall_landmark_batch_2, NumDims.StatefulPartitionedCall_landmark_conv2_7, NumDims.StatefulPartitionedCall_landmark_batch_1, NumDims.StatefulPartitionedCall_landmark_batch_2);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_3, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_7, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
-    Vars.StatefulPartitionedCall_landmark_batc_1 = dlarray(dsmean);
-    Vars.StatefulPartitionedCall_landmark_batc_2 = dlarray(dsvar);
+    [Vars.StatefulPartitionedCall_landmark_batch_3, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv2_7, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batch_1 = dlarray(dsmean);
+    Vars.StatefulPartitionedCall_landmark_batch_2 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_3 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_7, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batch_3 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv2_7, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_1 = Vars.StatefulPartitionedCall_landmark_batc_1;
-state.StatefulPartitionedCall_landmark_batc_2 = Vars.StatefulPartitionedCall_landmark_batc_2;
 
 % MaxPool:
-[poolsize, stride, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_max_p_1] = prepareMaxPool8Args(Vars.MaxPoolPoolSize1005, Vars.MaxPoolStride1006, Vars.MaxPoolPadding1007, NumDims.StatefulPartitionedCall_landmark_batc_3);
-Vars.StatefulPartitionedCall_landmark_max_p_1 = maxpool(Vars.StatefulPartitionedCall_landmark_batc_3, poolsize, 'Stride', stride, 'Padding', padding, 'DataFormat', dataFormat);
+[poolsize, stride, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_max_p_1] = prepareMaxPool8Args(Vars.MaxPoolPoolSize1005, Vars.MaxPoolStride1006, Vars.MaxPoolPadding1007, NumDims.StatefulPartitionedCall_landmark_batch_3);
+Vars.StatefulPartitionedCall_landmark_max_p_1 = maxpool(Vars.StatefulPartitionedCall_landmark_batch_3, poolsize, 'Stride', stride, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_10] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_11, Vars.StatefulPartitionedCall_landmark_conv_9, Vars.ConvStride1008, Vars.ConvDilationFactor1009, Vars.ConvPadding1010, 1, NumDims.StatefulPartitionedCall_landmark_max_p_1, NumDims.StatefulPartitionedCall_landmark_conv_11);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_10] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_11, Vars.StatefulPartitionedCall_landmark_conv2_9, Vars.ConvStride1008, Vars.ConvDilationFactor1009,Vars.ConvPadding1010, 1, NumDims.StatefulPartitionedCall_landmark_max_p_1, NumDims.StatefulPartitionedCall_landmark_conv_11);
 Vars.StatefulPartitionedCall_landmark_conv_10 = dlconv(Vars.StatefulPartitionedCall_landmark_max_p_1, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_13 = relu(Vars.StatefulPartitionedCall_landmark_conv_10);
+Vars.StatefulPartitionedCall_landmark_conv_13 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_10));
 NumDims.StatefulPartitionedCall_landmark_conv_13 = NumDims.StatefulPartitionedCall_landmark_conv_10;
 
 % BatchNormalization:
-[offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_9, NumDims.StatefulPartitionedCall_landmark_batc_7, NumDims.StatefulPartitionedCall_landmark_batc_8] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_11, Vars.StatefulPartitionedCall_landmark_batc_10, Vars.StatefulPartitionedCall_landmark_batc_7, Vars.StatefulPartitionedCall_landmark_batc_8, NumDims.StatefulPartitionedCall_landmark_conv_13, NumDims.StatefulPartitionedCall_landmark_batc_7, NumDims.StatefulPartitionedCall_landmark_batc_8);
+[offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batch_9, NumDims.StatefulPartitionedCall_landmark_batch_7, NumDims.StatefulPartitionedCall_landmark_batch_8] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_11, Vars.StatefulPartitionedCall_landmark_batc_10, Vars.StatefulPartitionedCall_landmark_batch_7, Vars.StatefulPartitionedCall_landmark_batch_8, NumDims.StatefulPartitionedCall_landmark_conv_13, NumDims.StatefulPartitionedCall_landmark_batch_7, NumDims.StatefulPartitionedCall_landmark_batch_8);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_9, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_13, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
-    Vars.StatefulPartitionedCall_landmark_batc_7 = dlarray(dsmean);
-    Vars.StatefulPartitionedCall_landmark_batc_8 = dlarray(dsvar);
+    [Vars.StatefulPartitionedCall_landmark_batch_9, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_13, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batch_7 = dlarray(dsmean);
+    Vars.StatefulPartitionedCall_landmark_batch_8 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_9 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_13, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batch_9 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_13, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_7 = Vars.StatefulPartitionedCall_landmark_batc_7;
-state.StatefulPartitionedCall_landmark_batc_8 = Vars.StatefulPartitionedCall_landmark_batc_8;
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_16] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_17, Vars.StatefulPartitionedCall_landmark_conv_15, Vars.ConvStride1011, Vars.ConvDilationFactor1012, Vars.ConvPadding1013, 1, NumDims.StatefulPartitionedCall_landmark_batc_9, NumDims.StatefulPartitionedCall_landmark_conv_17);
-Vars.StatefulPartitionedCall_landmark_conv_16 = dlconv(Vars.StatefulPartitionedCall_landmark_batc_9, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_16] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_17, Vars.StatefulPartitionedCall_landmark_conv_15, Vars.ConvStride1011, Vars.ConvDilationFactor1012,Vars.ConvPadding1013, 1, NumDims.StatefulPartitionedCall_landmark_batch_9, NumDims.StatefulPartitionedCall_landmark_conv_17);
+Vars.StatefulPartitionedCall_landmark_conv_16 = dlconv(Vars.StatefulPartitionedCall_landmark_batch_9, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_19 = relu(Vars.StatefulPartitionedCall_landmark_conv_16);
+Vars.StatefulPartitionedCall_landmark_conv_19 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_16));
 NumDims.StatefulPartitionedCall_landmark_conv_19 = NumDims.StatefulPartitionedCall_landmark_conv_16;
 
 % BatchNormalization:
 [offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_15, NumDims.StatefulPartitionedCall_landmark_batc_13, NumDims.StatefulPartitionedCall_landmark_batc_14] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_17, Vars.StatefulPartitionedCall_landmark_batc_16, Vars.StatefulPartitionedCall_landmark_batc_13, Vars.StatefulPartitionedCall_landmark_batc_14, NumDims.StatefulPartitionedCall_landmark_conv_19, NumDims.StatefulPartitionedCall_landmark_batc_13, NumDims.StatefulPartitionedCall_landmark_batc_14);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_15, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_19, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    [Vars.StatefulPartitionedCall_landmark_batc_15, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_19, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
     Vars.StatefulPartitionedCall_landmark_batc_13 = dlarray(dsmean);
     Vars.StatefulPartitionedCall_landmark_batc_14 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_15 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_19, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batc_15 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_19, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_13 = Vars.StatefulPartitionedCall_landmark_batc_13;
-state.StatefulPartitionedCall_landmark_batc_14 = Vars.StatefulPartitionedCall_landmark_batc_14;
 
 % MaxPool:
 [poolsize, stride, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_max_p_3] = prepareMaxPool8Args(Vars.MaxPoolPoolSize1014, Vars.MaxPoolStride1015, Vars.MaxPoolPadding1016, NumDims.StatefulPartitionedCall_landmark_batc_15);
 Vars.StatefulPartitionedCall_landmark_max_p_3 = maxpool(Vars.StatefulPartitionedCall_landmark_batc_15, poolsize, 'Stride', stride, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_22] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_23, Vars.StatefulPartitionedCall_landmark_conv_21, Vars.ConvStride1017, Vars.ConvDilationFactor1018, Vars.ConvPadding1019, 1, NumDims.StatefulPartitionedCall_landmark_max_p_3, NumDims.StatefulPartitionedCall_landmark_conv_23);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_22] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_23, Vars.StatefulPartitionedCall_landmark_conv_21, Vars.ConvStride1017, Vars.ConvDilationFactor1018,Vars.ConvPadding1019, 1, NumDims.StatefulPartitionedCall_landmark_max_p_3, NumDims.StatefulPartitionedCall_landmark_conv_23);
 Vars.StatefulPartitionedCall_landmark_conv_22 = dlconv(Vars.StatefulPartitionedCall_landmark_max_p_3, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_25 = relu(Vars.StatefulPartitionedCall_landmark_conv_22);
+Vars.StatefulPartitionedCall_landmark_conv_25 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_22));
 NumDims.StatefulPartitionedCall_landmark_conv_25 = NumDims.StatefulPartitionedCall_landmark_conv_22;
 
 % BatchNormalization:
 [offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_21, NumDims.StatefulPartitionedCall_landmark_batc_19, NumDims.StatefulPartitionedCall_landmark_batc_20] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_23, Vars.StatefulPartitionedCall_landmark_batc_22, Vars.StatefulPartitionedCall_landmark_batc_19, Vars.StatefulPartitionedCall_landmark_batc_20, NumDims.StatefulPartitionedCall_landmark_conv_25, NumDims.StatefulPartitionedCall_landmark_batc_19, NumDims.StatefulPartitionedCall_landmark_batc_20);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_21, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_25, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    [Vars.StatefulPartitionedCall_landmark_batc_21, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_25, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
     Vars.StatefulPartitionedCall_landmark_batc_19 = dlarray(dsmean);
     Vars.StatefulPartitionedCall_landmark_batc_20 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_21 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_25, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batc_21 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_25, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_19 = Vars.StatefulPartitionedCall_landmark_batc_19;
-state.StatefulPartitionedCall_landmark_batc_20 = Vars.StatefulPartitionedCall_landmark_batc_20;
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_28] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_29, Vars.StatefulPartitionedCall_landmark_conv_27, Vars.ConvStride1020, Vars.ConvDilationFactor1021, Vars.ConvPadding1022, 1, NumDims.StatefulPartitionedCall_landmark_batc_21, NumDims.StatefulPartitionedCall_landmark_conv_29);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_28] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_29, Vars.StatefulPartitionedCall_landmark_conv_27, Vars.ConvStride1020, Vars.ConvDilationFactor1021,Vars.ConvPadding1022, 1, NumDims.StatefulPartitionedCall_landmark_batc_21, NumDims.StatefulPartitionedCall_landmark_conv_29);
 Vars.StatefulPartitionedCall_landmark_conv_28 = dlconv(Vars.StatefulPartitionedCall_landmark_batc_21, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_31 = relu(Vars.StatefulPartitionedCall_landmark_conv_28);
+Vars.StatefulPartitionedCall_landmark_conv_31 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_28));
 NumDims.StatefulPartitionedCall_landmark_conv_31 = NumDims.StatefulPartitionedCall_landmark_conv_28;
 
 % BatchNormalization:
 [offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_27, NumDims.StatefulPartitionedCall_landmark_batc_25, NumDims.StatefulPartitionedCall_landmark_batc_26] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_29, Vars.StatefulPartitionedCall_landmark_batc_28, Vars.StatefulPartitionedCall_landmark_batc_25, Vars.StatefulPartitionedCall_landmark_batc_26, NumDims.StatefulPartitionedCall_landmark_conv_31, NumDims.StatefulPartitionedCall_landmark_batc_25, NumDims.StatefulPartitionedCall_landmark_batc_26);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_27, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_31, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    [Vars.StatefulPartitionedCall_landmark_batc_27, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_31, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
     Vars.StatefulPartitionedCall_landmark_batc_25 = dlarray(dsmean);
     Vars.StatefulPartitionedCall_landmark_batc_26 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_27 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_31, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batc_27 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_31, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_25 = Vars.StatefulPartitionedCall_landmark_batc_25;
-state.StatefulPartitionedCall_landmark_batc_26 = Vars.StatefulPartitionedCall_landmark_batc_26;
 
 % MaxPool:
 [poolsize, stride, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_max_p_5] = prepareMaxPool8Args(Vars.MaxPoolPoolSize1023, Vars.MaxPoolStride1024, Vars.MaxPoolPadding1025, NumDims.StatefulPartitionedCall_landmark_batc_27);
 Vars.StatefulPartitionedCall_landmark_max_p_5 = maxpool(Vars.StatefulPartitionedCall_landmark_batc_27, poolsize, 'Stride', stride, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_34] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_35, Vars.StatefulPartitionedCall_landmark_conv_33, Vars.ConvStride1026, Vars.ConvDilationFactor1027, Vars.ConvPadding1028, 1, NumDims.StatefulPartitionedCall_landmark_max_p_5, NumDims.StatefulPartitionedCall_landmark_conv_35);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_34] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_35, Vars.StatefulPartitionedCall_landmark_conv_33, Vars.ConvStride1026, Vars.ConvDilationFactor1027,Vars.ConvPadding1028, 1, NumDims.StatefulPartitionedCall_landmark_max_p_5, NumDims.StatefulPartitionedCall_landmark_conv_35);
 Vars.StatefulPartitionedCall_landmark_conv_34 = dlconv(Vars.StatefulPartitionedCall_landmark_max_p_5, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_37 = relu(Vars.StatefulPartitionedCall_landmark_conv_34);
+Vars.StatefulPartitionedCall_landmark_conv_37 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_34));
 NumDims.StatefulPartitionedCall_landmark_conv_37 = NumDims.StatefulPartitionedCall_landmark_conv_34;
 
 % BatchNormalization:
 [offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_33, NumDims.StatefulPartitionedCall_landmark_batc_31, NumDims.StatefulPartitionedCall_landmark_batc_32] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_35, Vars.StatefulPartitionedCall_landmark_batc_34, Vars.StatefulPartitionedCall_landmark_batc_31, Vars.StatefulPartitionedCall_landmark_batc_32, NumDims.StatefulPartitionedCall_landmark_conv_37, NumDims.StatefulPartitionedCall_landmark_batc_31, NumDims.StatefulPartitionedCall_landmark_batc_32);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_33, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_37, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    [Vars.StatefulPartitionedCall_landmark_batc_33, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_37, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
     Vars.StatefulPartitionedCall_landmark_batc_31 = dlarray(dsmean);
     Vars.StatefulPartitionedCall_landmark_batc_32 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_33 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_37, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batc_33 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_37, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_31 = Vars.StatefulPartitionedCall_landmark_batc_31;
-state.StatefulPartitionedCall_landmark_batc_32 = Vars.StatefulPartitionedCall_landmark_batc_32;
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_40] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_41, Vars.StatefulPartitionedCall_landmark_conv_39, Vars.ConvStride1029, Vars.ConvDilationFactor1030, Vars.ConvPadding1031, 1, NumDims.StatefulPartitionedCall_landmark_batc_33, NumDims.StatefulPartitionedCall_landmark_conv_41);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_40] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_41, Vars.StatefulPartitionedCall_landmark_conv_39, Vars.ConvStride1029, Vars.ConvDilationFactor1030,Vars.ConvPadding1031, 1, NumDims.StatefulPartitionedCall_landmark_batc_33, NumDims.StatefulPartitionedCall_landmark_conv_41);
 Vars.StatefulPartitionedCall_landmark_conv_40 = dlconv(Vars.StatefulPartitionedCall_landmark_batc_33, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_43 = relu(Vars.StatefulPartitionedCall_landmark_conv_40);
+Vars.StatefulPartitionedCall_landmark_conv_43 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_40));
 NumDims.StatefulPartitionedCall_landmark_conv_43 = NumDims.StatefulPartitionedCall_landmark_conv_40;
 
 % BatchNormalization:
 [offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_39, NumDims.StatefulPartitionedCall_landmark_batc_37, NumDims.StatefulPartitionedCall_landmark_batc_38] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_41, Vars.StatefulPartitionedCall_landmark_batc_40, Vars.StatefulPartitionedCall_landmark_batc_37, Vars.StatefulPartitionedCall_landmark_batc_38, NumDims.StatefulPartitionedCall_landmark_conv_43, NumDims.StatefulPartitionedCall_landmark_batc_37, NumDims.StatefulPartitionedCall_landmark_batc_38);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_39, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_43, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    [Vars.StatefulPartitionedCall_landmark_batc_39, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_43, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
     Vars.StatefulPartitionedCall_landmark_batc_37 = dlarray(dsmean);
     Vars.StatefulPartitionedCall_landmark_batc_38 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_39 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_43, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batc_39 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_43, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_37 = Vars.StatefulPartitionedCall_landmark_batc_37;
-state.StatefulPartitionedCall_landmark_batc_38 = Vars.StatefulPartitionedCall_landmark_batc_38;
 
 % MaxPool:
 [poolsize, stride, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_max_p_7] = prepareMaxPool8Args(Vars.MaxPoolPoolSize1032, Vars.MaxPoolStride1033, Vars.MaxPoolPadding1034, NumDims.StatefulPartitionedCall_landmark_batc_39);
 Vars.StatefulPartitionedCall_landmark_max_p_7 = maxpool(Vars.StatefulPartitionedCall_landmark_batc_39, poolsize, 'Stride', stride, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Conv:
-[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_46] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_47, Vars.StatefulPartitionedCall_landmark_conv_45, Vars.ConvStride1035, Vars.ConvDilationFactor1036, Vars.ConvPadding1037, 1, NumDims.StatefulPartitionedCall_landmark_max_p_7, NumDims.StatefulPartitionedCall_landmark_conv_47);
+[weights, bias, stride, dilationFactor, padding, dataFormat, NumDims.StatefulPartitionedCall_landmark_conv_46] = prepareConvArgs(Vars.StatefulPartitionedCall_landmark_conv_47, Vars.StatefulPartitionedCall_landmark_conv_45, Vars.ConvStride1035, Vars.ConvDilationFactor1036,Vars.ConvPadding1037, 1, NumDims.StatefulPartitionedCall_landmark_max_p_7, NumDims.StatefulPartitionedCall_landmark_conv_47);
 Vars.StatefulPartitionedCall_landmark_conv_46 = dlconv(Vars.StatefulPartitionedCall_landmark_max_p_7, weights, bias, 'Stride', stride, 'DilationFactor', dilationFactor, 'Padding', padding, 'DataFormat', dataFormat);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_conv_49 = relu(Vars.StatefulPartitionedCall_landmark_conv_46);
+Vars.StatefulPartitionedCall_landmark_conv_49 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_conv_46));
 NumDims.StatefulPartitionedCall_landmark_conv_49 = NumDims.StatefulPartitionedCall_landmark_conv_46;
 
 % BatchNormalization:
 [offset, scale, datasetMean, datasetVariance, dataFormat, NumDims.StatefulPartitionedCall_landmark_batc_45, NumDims.StatefulPartitionedCall_landmark_batc_43, NumDims.StatefulPartitionedCall_landmark_batc_44] = prepareBatchNormalizationArgs(Vars.StatefulPartitionedCall_landmark_batc_49, Vars.StatefulPartitionedCall_landmark_batc_48, Vars.StatefulPartitionedCall_landmark_batc_43, Vars.StatefulPartitionedCall_landmark_batc_44, NumDims.StatefulPartitionedCall_landmark_conv_49, NumDims.StatefulPartitionedCall_landmark_batc_43, NumDims.StatefulPartitionedCall_landmark_batc_44);
 if Training
-    [Vars.StatefulPartitionedCall_landmark_batc_45, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_49, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    [Vars.StatefulPartitionedCall_landmark_batc_45, dsmean, dsvar] = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_49, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
     Vars.StatefulPartitionedCall_landmark_batc_43 = dlarray(dsmean);
     Vars.StatefulPartitionedCall_landmark_batc_44 = dlarray(dsvar);
 else
-    Vars.StatefulPartitionedCall_landmark_batc_45 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_49, offset, scale, datasetMean, datasetVariance, 'Epsilon', 1.000000e-03, 'DataFormat', dataFormat);
+    Vars.StatefulPartitionedCall_landmark_batc_45 = batchnorm(Vars.StatefulPartitionedCall_landmark_conv_49, offset, scale, datasetMean, datasetVariance, 'Epsilon', 0.001000, 'DataFormat', dataFormat);
 end
-state.StatefulPartitionedCall_landmark_batc_43 = Vars.StatefulPartitionedCall_landmark_batc_43;
-state.StatefulPartitionedCall_landmark_batc_44 = Vars.StatefulPartitionedCall_landmark_batc_44;
 
 % Transpose:
 [perm, NumDims.StatefulPartitionedCall_landmark_batc_47] = prepareTransposeArgs(Vars.TransposePerm1038, NumDims.StatefulPartitionedCall_landmark_batc_45);
-if ~isempty(perm)
+if isempty(perm)
+    Vars.StatefulPartitionedCall_landmark_batc_47 = Vars.StatefulPartitionedCall_landmark_batc_45;
+else
     Vars.StatefulPartitionedCall_landmark_batc_47 = permute(Vars.StatefulPartitionedCall_landmark_batc_45, perm);
 end
 
@@ -312,12 +300,12 @@ Vars.StatefulPartitionedCall_landmark_dense_7 = Vars.StatefulPartitionedCall_lan
 NumDims.StatefulPartitionedCall_landmark_dense_7 = max(NumDims.StatefulPartitionedCall_landmark_dense_9, NumDims.StatefulPartitionedCall_landmark_dense_6);
 
 % Relu:
-Vars.StatefulPartitionedCall_landmark_dens_1 = relu(Vars.StatefulPartitionedCall_landmark_dense_7);
-NumDims.StatefulPartitionedCall_landmark_dens_1 = NumDims.StatefulPartitionedCall_landmark_dense_7;
+Vars.StatefulPartitionedCall_landmark_dens_10 = relu(dlarray(Vars.StatefulPartitionedCall_landmark_dense_7));
+NumDims.StatefulPartitionedCall_landmark_dens_10 = NumDims.StatefulPartitionedCall_landmark_dense_7;
 
 % Mul:
-Vars.StatefulPartitionedCall_landmark_batc_54 = Vars.StatefulPartitionedCall_landmark_dens_1 .* Vars.StatefulPartitionedCall_landmark_batc_52;
-NumDims.StatefulPartitionedCall_landmark_batc_54 = max(NumDims.StatefulPartitionedCall_landmark_dens_1, NumDims.StatefulPartitionedCall_landmark_batc_52);
+Vars.StatefulPartitionedCall_landmark_batc_54 = Vars.StatefulPartitionedCall_landmark_dens_10 .* Vars.StatefulPartitionedCall_landmark_batc_52;
+NumDims.StatefulPartitionedCall_landmark_batc_54 = max(NumDims.StatefulPartitionedCall_landmark_dens_10, NumDims.StatefulPartitionedCall_landmark_batc_52);
 
 % Add:
 Vars.StatefulPartitionedCall_landmark_batc_51 = Vars.StatefulPartitionedCall_landmark_batc_54 + Vars.StatefulPartitionedCall_landmark_batc_55;
@@ -424,12 +412,16 @@ function [offset, scale, datasetMean, datasetVariance, dataFormat, numDimsY, num
     offset, scale, datasetMean, datasetVariance, numDimsX, numDimsDatasetMean, numDimsDatasetVariance)
 % Prepares arguments for implementing the ONNX BatchNormalization operator
 
-%   Copyright 2020-2021 The MathWorks, Inc.
+%   Copyright 2020-2024 The MathWorks, Inc.
 
 offset = dlarray(offset,'C');
 scale = dlarray(scale,'C');
-datasetMean = extractdata(datasetMean);
-datasetVariance = extractdata(datasetVariance);
+if isdlarray(datasetMean)
+    datasetMean = extractdata(datasetMean);
+end
+if isdlarray(datasetVariance)
+    datasetVariance = extractdata(datasetVariance);
+end
 datasetVariance(datasetVariance <= 0) = realmin('single');  % Set nonpositive variance components to a value below eps('single')
 dataFormat = [repmat('S', 1, numDimsX-2), 'CB'];
 numDimsY = numDimsX;

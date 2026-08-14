@@ -17,9 +17,9 @@ prevD = double(prevGray);
 mseValue = mean((currentD(:) - prevD(:)).^2);
 
 % 2. Calibrated Thresholds for Compressed Video
-T_freeze   = 20.0; 
-T_jump     = 150.0; 
-T_duration = 2.0;   
+T_freeze   = 20.0;  % Increased from 0.5 to absorb H.264 compression noise on static scenes
+T_jump     = 150.0; % Lowered slightly to ensure the sudden posture snap is caught
+T_duration = 2.0;   % Seconds the feed must be frozen to arm the alarm
 
 % 3. State Machine Logic
 if mseValue < T_freeze
